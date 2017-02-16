@@ -1,5 +1,5 @@
 #module PowerGrid
-#module means you can include("powergrid.jl") and then either 
+#module means you can include("powergrid.jl") and then either
 #using PowerGrid # This means it will pull in the exported 'things' into the current scope, you can use myfunction() to call
 #import PowerGrid # This means you need to use PowerGrid.myfunction() to call
 import MAT # Reading in matlab .mat files
@@ -44,19 +44,29 @@ creates the function which is used inside the differential equations solver (com
 function functionSetup{T}(couplingMatrix::Matrix{T},sources::Vector{T},dissipation::T,coupling::T)
     function f{T}(t::T,u::Matrix{T},du::Matrix{T})
         for i in indices(u,1)
-            @inbounds du[i,1]=sources[i]-dissipation*u[i,1]+coupling*sum(couplingMatrix[j,i]*sin(u[j,2]-u[i,2]) for j in indices(couplingMatrix,1) if j!=i)
+            surge=(( t<15 && t>14.5 && i==1)?15:0)
+            #surge=(( t<20 && t>10 && i==1)?0.1:0)
+            @inbounds du[i,1]=surge+sources[i]-dissipation*u[i,1]+coupling*sum(couplingMatrix[j,i]*sin(u[j,2]-u[i,2]) for j in indices(couplingMatrix,1) if j!=i)
             @inbounds du[i,2]=u[i,1]
         end
     end
     return f
 end
-prob=ODEProblem(functionSetup([0.   0.5   0.;
-                               0.5   0.   0.4;
-                               0.   0.4   0.],
-                             [0.2, -0.1,-0.1],1.,1.), # Evolution function f(t,state,derivative)
+prob=ODEProblem(functionSetup([0.   0.5   0.5;
+                               0.5   0.   0.5;
+                               0.5   0.5   0.],
+                             [0.2, -0.08,-0.12],1.,1.), # Evolution function f(t,state,derivative)
                   [[0.,0.,0.] [1.,0.,0.]], # Initial matrix
-                  (0.,20.)) # Integrate ODE from 0 to 20
+                  (0.,30.)) # Integrate ODE from 0 to 20
+n=200
+randomsystem=rand(n,n)
+randomsystem+=randomsystem'
+sources=rand(n)
+sources[end]=-sum(sources[1:end-1])
+prob=ODEProblem(functionSetup(randomsystem,sources,1.,1.),[zeros(n) [1.;zeros(n-1)]],(0.,30.)) # Integrate ODE from 0 to 20
 res=solve(prob) # Integrate the problem
+toplot=hcat([a[:,2] for a in res[:]]...);
+plot(res)
 plotlyjs() # Switch backend, as pyplot seems to crash for me for some reason. Another advantage is that this is interactive.
 plot(res) # Plot results
 #end # close module
