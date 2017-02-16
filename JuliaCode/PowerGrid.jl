@@ -7,13 +7,13 @@ import Images # Doing calculations and transformations on images
 import ImageView # Showing images, this package seems to clash with pyplot, so its imported
 using Plots # Standard Plotting library with numerous backends (PyPlots,Plotlyjs,Plotly are most used, they may need Pkg.add("...") and switching backends possible with pyplot() or plotlyjs()
 using DifferentialEquations # Solving lots of types of DEs numerically.
-#using LightGraphs # A good graph library, may be useful later.
+using LightGraphs # A good graph library, may be useful later.
 # Read in data
 # Few useful comments:
 # vector of vectors != matrix
 # map: f.(array) == f applied to every element of array
 # splice: f([a,b,c]...) == f(a,b,c)
-var=MAT.matread("ukgrid_data.mat") # Read in data from the working folder (to check: pwd() )
+var=MAT.matread("../Data/ukgrid_data.mat") # Read in data from the working folder (to check: pwd() )
 britain=Images.colorview(Images.RGB,Images.normedview(permutedims(var["map"],[3,1,2]))) # Turning the imported picture to a proper object. It is a bit weird as matlabs representation is m by n by 3 and julia needs 3 x m x n (hence permutedims), needs to be normed (normedview) and needs to specify the colorspace (RGB)
 pts=[(Int.(var["nodelist"][i,[3,4]])...) for i in indices(var["nodelist"],1)] # Turn the not really nice node list into a nicer form
 amat=sparse(Int.(var["A"])) # Turn the dense almost empty adjacency matrix to nice sparse form
@@ -50,12 +50,26 @@ function functionSetup{T}(couplingMatrix::Matrix{T},sources::Vector{T},dissipati
     end
     return f
 end
-prob=ODEProblem(functionSetup([0.   0.5   0.;
-                               0.5   0.   0.4;
-                               0.   0.4   0.],
-                             [0.2, -0.1,-0.1],1.,1.), # Evolution function f(t,state,derivative)
-                  [[0.,0.,0.] [1.,0.,0.]], # Initial matrix
-                  (0.,20.)) # Integrate ODE from 0 to 20
+
+load = 5.06;
+
+prob2=ODEProblem(functionSetup([0.   load    load 0.  0.  0.  0.;
+                               load   0.   load   0.  0.  0.  0.;
+                               load   load   0. load  0.  0.  0.;
+                               0.   0.  load    0.  load  0.  0.;
+                               0.   0.  0.  load  0.  load  0.;
+                               0.   0.  0.  0.  load  0.  load;
+                               0.   0.  0.  0.  0.  load  0.],
+                             [1.,1.,1.,2.,0., -3,-2.],1.,1.), # Evolution function f(t,state,derivative)
+                  [[0.,0.,0.,0.,0.,0.,0.] [1.,0.,0.,0.,0.,0.,0.]], # Initial matrix
+                  (0.,30.)) # Integrate ODE from 0 to 20
+
+prob = ODEProblem(functionSetup([0. 0.5 0.5;
+                                0.5 0. 0.4;
+                                0. 0.4 0.],
+                                [0.2, -0.1, -0.1], 1.,1.), 
+                                [[0., 0., 0.] [0.05, 0., 0.]], (0., 20.))
+
 res=solve(prob) # Integrate the problem
 plotlyjs() # Switch backend, as pyplot seems to crash for me for some reason. Another advantage is that this is interactive.
 plot(res) # Plot results
