@@ -32,9 +32,8 @@ linehandle=ImageView.annotate!(canv,img,annlines)
 end
 # Graph formulation by LightGraphs
 g=Graph()
-add_vertices!(g,size(amat,1)) # Add vertices
-[add_edge!(g,p...) for p in edges] # Add all edges
-f(v)=(v-minimum(v))/(maximum(v)-minimum(v))
+#add_vertices!(g,size(amat,1)) # Add vertices
+#[add_edge!(g,p...) for p in edges] # Add all edges
 """
 `functionSetup(couplingMatrix,sources,dissipation,coupling)`
 
@@ -54,8 +53,39 @@ function functionSetup{T}(couplingMatrix::Matrix{T},sources::Vector{T},dissipati
     return f
 end
 
-load = 5.06;
+#define the number of nodes which should exist
+size = 2;
 
+#initiallise the adjacency matrix
+Adjacency = zeros(Float64, size,size)
+
+#define the preexisting edges
+Adjacency[1,2] = 1;
+
+#make matrix symmetric
+Adjacency = Adjacency + transpose(Adjacency)
+
+#define the load value, which will be multiplied to the Adjacency matrix
+load = 1.1;
+
+#define the source vector
+source = zeros(Float64,size)
+source[1]=1.;
+source[2] = -1.
+
+#define the damping constant
+damping = 1.
+
+#define the initial state
+init_state = zeros(Float64, size);
+
+prob=ODEProblem(functionSetup(Adjacency, source,damping,load), # Evolution function f(t,state,derivative)
+                  [[0.,0.] [0.,0.]], # Initial matrix
+                  (0.,20.)) # Integrate ODE from 0 to 20
+
+
+
+#=
 prob2=ODEProblem(functionSetup([0.   load    load 0.  0.  0.  0.;
                                load   0.   load   0.  0.  0.  0.;
                                load   load   0. load  0.  0.  0.;
@@ -66,6 +96,8 @@ prob2=ODEProblem(functionSetup([0.   load    load 0.  0.  0.  0.;
                              [1.,1.,1.,2.,0., -3,-2.],1.,1.), # Evolution function f(t,state,derivative)
                   [[0.,0.,0.,0.,0.,0.,0.] [1.,0.,0.,0.,0.,0.,0.]], # Initial matrix
                   (0.,30.)) # Integrate ODE from 0 to 20
+
+=#
 #=
 prob = ODEProblem(functionSetup([0. 0.5 0.5;
                                 0.5 0. 0.4;
@@ -74,6 +106,7 @@ prob = ODEProblem(functionSetup([0. 0.5 0.5;
                                 [[0., 0., 0.] [0.05, 0., 0.]], (0., 20.))
 =#
 
+#=
 prob=ODEProblem(functionSetup([0.   0.5   0.5;
                                0.5   0.   0.5;
                                0.5   0.5   0.],
@@ -86,8 +119,9 @@ randomsystem+=randomsystem'
 sources=rand(n)
 sources[end]=-sum(sources[1:end-1])
 prob=ODEProblem(functionSetup(randomsystem,sources,1.,1.),[zeros(n) [1.;zeros(n-1)]],(0.,30.)) # Integrate ODE from 0 to 20
+=#
 
-res=solve(prob) # Integrate the problem
+res=solve(prob, abstol = 1e-4) # Integrate the problem
 toplot=hcat([a[:,2] for a in res[:]]...);
 plot(res)
 plotlyjs() # Switch backend, as pyplot seems to crash for me for some reason. Another advantage is that this is interactive.
