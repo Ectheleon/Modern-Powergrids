@@ -13,7 +13,7 @@ using DifferentialEquations # Solving lots of types of DEs numerically.
 # vector of vectors != matrix
 # map: f.(array) == f applied to every element of array
 # splice: f([a,b,c]...) == f(a,b,c)
-var=MAT.matread("ukgrid_data.mat") # Read in data from the working folder (to check: pwd() )
+var=MAT.matread("../Data/ukgrid_data.mat") # Read in data from the working folder (to check: pwd() )
 britain=Images.colorview(Images.RGB,Images.normedview(permutedims(var["map"],[3,1,2]))) # Turning the imported picture to a proper object. It is a bit weird as matlabs representation is m by n by 3 and julia needs 3 x m x n (hence permutedims), needs to be normed (normedview) and needs to specify the colorspace (RGB)
 pts=[(Int.(var["nodelist"][i,[3,4]])...) for i in indices(var["nodelist"],1)] # Turn the not really nice node list into a nicer form
 amat=sparse(Int.(var["A"])) # Turn the dense almost empty adjacency matrix to nice sparse form
@@ -34,6 +34,7 @@ end
 g=Graph()
 add_vertices!(g,size(amat,1)) # Add vertices
 [add_edge!(g,p...) for p in edges] # Add all edges
+f(v)=(v-minimum(v))/(maximum(v)-minimum(v))
 """
 `functionSetup(couplingMatrix,sources,dissipation,coupling)`
 
